@@ -2,7 +2,7 @@
 
 Why one clipboard when many clipboard do better
 
-![frothedboard](docs/frothedboard.png)
+![frothedboard](docs/flow-concept.png)
 
 Hold **Ctrl**, tap **C**, tap **3** — that copy went to board 3.
 Hold **Ctrl**, tap **V**, tap **3** — board 3 comes back.
