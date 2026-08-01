@@ -6,3 +6,4 @@ dist/
 artifacts/
 *.received.*
 .env
+dist-fd/

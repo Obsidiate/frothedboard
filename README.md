@@ -85,6 +85,9 @@ dotnet publish src/Frothedboard.App -c Release -r win-x64 --self-contained \
   -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o dist
 ```
 
+That produces a standalone ~65 MB exe with the runtime baked in. For a 200 KB one that needs the
+[.NET 8 Desktop Runtime][runtime] installed, swap `--self-contained` for `--self-contained false`.
+
 Cross-builds from Linux or macOS; `EnableWindowsTargeting` in the app csproj pulls the Windows ref
 packs from NuGet.
 
@@ -105,3 +108,4 @@ MIT.
 [pt1]: https://github.com/microsoft/PowerToys/issues/3768
 [pt2]: https://github.com/microsoft/PowerToys/issues/18430
 [dotnet]: https://dot.net/v1/dotnet-install.sh
+[runtime]: https://dotnet.microsoft.com/download/dotnet/8.0/runtime
