@@ -13,6 +13,12 @@ Hold **Ctrl**, tap **V**, tap **3**, let go — board 3 comes back.
 Any digit works, top row or numpad, so there are ten boards plus the untouched system clipboard.
 Eleven places to put things.
 
+**The boards are rich, not just text.** Each one carries Unicode text, HTML, RTF, CSV, copied files
+and bitmaps, so formatted Word and Excel content, images and file selections all round-trip intact.
+The captured format list is a deliberate whitelist — asking for every format present makes
+delayed-rendering sources like Excel materialise each one on demand, which is slow and sometimes
+hangs — so app-private exotic formats will not survive.
+
 **Never touch a digit and Ctrl+C / Ctrl+V behave exactly as they always have.** No new muscle
 memory, no added latency, nothing to remember on the days you don't need it.
 
@@ -66,17 +72,26 @@ cross-compiled from Linux. Things worth checking first on real hardware:
 - rich content survives a round trip: formatted text, an image, copied files
 - elevated windows (an unelevated hook cannot see them; run as admin if you need them)
 
-Only text survives a restart. Images and copied file lists stay in memory for the session, on
-purpose — persisting them means writing whatever you happened to copy to disk.
+Nothing survives a restart, and nothing is written to disk at any point.
 
 ## Install
 
-Grab `frothedboard.exe` and run it. There is no installer. It lives in the tray; right-click for
-the boards, to pause it, or to start it with Windows.
+Download `frothedboard-0.1.0-win-x64-portable.zip` from [Releases][releases], unpack the folder
+anywhere — a USB stick is fine — and run `frothedboard.exe`. There is no installer and no runtime
+to install. It lives in the tray; right-click for the boards, to pause it, or to start it with
+Windows.
 
-Two flavours: a ~65 MB standalone build that needs nothing installed, and a ~200 KB one that needs
-the [.NET 8 Desktop Runtime][runtime]. If the small one does nothing when you double-click it, you
-are missing the runtime.
+It ships as a folder rather than a lone exe on purpose. A true single-file build makes the .NET
+host unpack its native libraries into `%TEMP%` on first run, and the point of this build is that
+everything it touches stays in the folder you put it in.
+
+**It is portable and it writes nothing to disk.** Boards live in memory only and are wiped when you
+quit, so nothing you copied outlives the session or gets spooled into a file somewhere. The one
+thing that reaches outside the folder is the opt-in "Start with Windows" menu item, which sets a
+single `HKCU\...\Run` value and removes it again when you untick it.
+
+The trade is that boards do not survive a restart. That is on purpose: a clipboard tool that
+quietly writes whatever you copied to disk is a liability.
 
 ## Build
 
@@ -98,8 +113,8 @@ packs from NuGet.
 ## Configuration
 
 Defaults live in `FrothedConfig` — board count, the chord timeouts, how long to wait for a lazy app
-to read the clipboard before taking it back, and whether `Ctrl+X` takes the chord too. Boards are
-stored in `%LOCALAPPDATA%\frothedboard\`.
+to read the clipboard before taking it back, and whether `Ctrl+X` takes the chord too. There is no
+config file, because there is no file: nothing is written anywhere.
 
 ## Licence
 
@@ -111,5 +126,6 @@ MIT.
 [ahk]: https://github.com/GroggyOtter/AHK_Multi_Clipboard
 [pt1]: https://github.com/microsoft/PowerToys/issues/3768
 [pt2]: https://github.com/microsoft/PowerToys/issues/18430
+[releases]: https://github.com/Obsidiate/frothedboard/releases
 [dotnet]: https://dot.net/v1/dotnet-install.sh
 [runtime]: https://dotnet.microsoft.com/download/dotnet/8.0/runtime

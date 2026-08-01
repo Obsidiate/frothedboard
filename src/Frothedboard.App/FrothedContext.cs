@@ -24,7 +24,6 @@ internal sealed class FrothedContext : ApplicationContext
     {
         _machine = new ChordStateMachine(_config);
         _slots = new SlotStore(_config.SlotCount);
-        _slots.Load();
         _clipboard = new ClipboardService(_config, _slots);
 
         _window.ClipboardChanged += _clipboard.OnClipboardChanged;
@@ -161,6 +160,13 @@ internal sealed class FrothedContext : ApplicationContext
         {
             _hook.Dispose();
             _timer.Dispose();
+
+            // Never exit leaving a board's contents sitting on the system clipboard, which is what
+            // happens if we are quit mid-paste between writing a board and putting the real
+            // clipboard back.
+            _clipboard.RestoreSystemClipboard();
+            _slots.ClearAll();
+
             _tray.Visible = false;
             _tray.Dispose();
             _window.Dispose();

@@ -78,9 +78,6 @@ internal sealed class ClipboardPayload
         return data.Count == 0 ? null : new ClipboardPayload(data, text);
     }
 
-    public static ClipboardPayload FromText(string text) =>
-        new(new Dictionary<string, object> { [DataFormats.UnicodeText] = text }, text);
-
     public DataObject ToDataObject()
     {
         var obj = new DataObject();

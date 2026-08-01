@@ -15,6 +15,12 @@ internal sealed class ClipboardService(FrothedConfig config, SlotStore slots)
     private ClipboardPayload? _armed;
     private uint _armedSequence;
 
+    /// <summary>
+    /// Set only while a board's contents are deliberately sitting on the system clipboard during a
+    /// slot paste. Holds what belongs there instead, so an exit mid-paste can put it back.
+    /// </summary>
+    private ClipboardPayload? _owedRestore;
+
     public event Action<string>? Notice;
 
     /// <summary>
@@ -74,7 +80,7 @@ internal sealed class ClipboardService(FrothedConfig config, SlotStore slots)
             return;
         }
 
-        var restore = _mirror;
+        _owedRestore = _mirror;
 
         Write(payload);
         await Task.Delay(20);
@@ -85,8 +91,20 @@ internal sealed class ClipboardService(FrothedConfig config, SlotStore slots)
         // Restoring too eagerly is the most likely cause of a paste arriving empty.
         await Task.Delay(config.PasteRestoreDelayMs);
 
-        if (restore is not null)
-            Write(restore);
+        RestoreSystemClipboard();
+    }
+
+    /// <summary>
+    /// Puts the real clipboard back if a board's contents are currently standing in for it.
+    /// Safe to call at any time, including on the way out.
+    /// </summary>
+    public void RestoreSystemClipboard()
+    {
+        if (_owedRestore is not { } restore)
+            return;
+
+        _owedRestore = null;
+        Write(restore);
     }
 
     private void Write(ClipboardPayload payload)
