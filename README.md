@@ -71,8 +71,12 @@ purpose — persisting them means writing whatever you happened to copy to disk.
 
 ## Install
 
-Grab `frothedboard.exe` and run it. It lives in the tray; right-click for the boards, to pause it,
-or to start it with Windows. No installer, no runtime to install.
+Grab `frothedboard.exe` and run it. There is no installer. It lives in the tray; right-click for
+the boards, to pause it, or to start it with Windows.
+
+Two flavours: a ~65 MB standalone build that needs nothing installed, and a ~200 KB one that needs
+the [.NET 8 Desktop Runtime][runtime]. If the small one does nothing when you double-click it, you
+are missing the runtime.
 
 ## Build
 
