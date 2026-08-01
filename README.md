@@ -19,8 +19,9 @@ Windows. Grab the zip from [Releases][releases], unpack it anywhere, run `frothe
 installer, no runtime. It sits in the tray. A folder rather than a lone exe so nothing leaks into
 `%TEMP%`.
 
-Portable: nothing is written to disk, ever. Boards are wiped when you quit and don't survive a
-restart, on purpose.
+Portable: no files written, ever. Boards live in memory and are wiped when you quit, so they
+don't survive a restart — on purpose. The one thing it writes anywhere is the opt-in *Start with
+Windows* toggle, which sets a single registry value and removes it when you untick it.
 
 ## Tested so far
 
