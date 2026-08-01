@@ -81,7 +81,7 @@ Nothing survives a restart, and nothing is written to disk at any point.
 
 ## Install
 
-Download `frothedboard-0.2.0-win-x64-portable.zip` from [Releases][releases], unpack the folder
+Download `frothedboard-0.2.1-win-x64-portable.zip` from [Releases][releases], unpack the folder
 anywhere — a USB stick is fine — and run `frothedboard.exe`. There is no installer and no runtime
 to install. It lives in the tray; right-click for the boards, to pause it, or to start it with
 Windows.
@@ -137,8 +137,11 @@ really is ten cards plus a separate system clipboard with the highlight on the t
 board numbers and captions are drawn here, because digit sequences remain the one thing not worth
 gambling on and they have to agree with these docs exactly.
 
-The icon is drawn outright rather than generated — image models turn to mush at the 16x16 a tray
-icon has to survive.
+The icon is generated too, by the same model. Two things make it work at tray sizes. The API
+rejects a `background: transparent` parameter and the model answers the *word* "transparent" by
+painting a checkerboard, so the art is generated on flat magenta and chroma-keyed out. And a plain
+resize to 16x16 turns to soup, so the small entries are sharpened after downscaling and their alpha
+re-hardened to keep a crisp silhouette.
 
 ## Licence
 
