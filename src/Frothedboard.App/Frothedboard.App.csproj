@@ -10,12 +10,15 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>frothedboard</AssemblyName>
     <RootNamespace>Frothedboard.App</RootNamespace>
-    <ApplicationIcon></ApplicationIcon>
-    <Version>0.1.0</Version>
+    <ApplicationIcon>frothedboard.ico</ApplicationIcon>
+    <Version>0.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Frothedboard.Core\Frothedboard.Core.csproj" />
+    <!-- Same file the exe wears, embedded so the tray icon is sharp at every size Windows asks
+         for rather than a scaled-down 32x32. -->
+    <EmbeddedResource Include="frothedboard.ico" LogicalName="frothedboard.ico" />
   </ItemGroup>
 
 </Project>

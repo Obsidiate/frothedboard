@@ -31,7 +31,7 @@ internal sealed class FrothedContext : ApplicationContext
 
         _tray = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = LoadTrayIcon(),
             Text = "frothedboard",
             Visible = true,
             ContextMenuStrip = new ContextMenuStrip(),
@@ -134,6 +134,16 @@ internal sealed class FrothedContext : ApplicationContext
         menu.Items.Add(new ToolStripMenuItem("Clear all boards", null, (_, _) => _slots.ClearAll()));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Quit", null, (_, _) => ExitThread()));
+    }
+
+    /// <summary>
+    /// Pulls the icon out of the embedded .ico and asks for the exact size the tray wants, so
+    /// Windows picks the hand-drawn 16x16 rather than squashing the 256x256 down to it.
+    /// </summary>
+    private static Icon LoadTrayIcon()
+    {
+        using var stream = typeof(FrothedContext).Assembly.GetManifestResourceStream("frothedboard.ico");
+        return stream is null ? SystemIcons.Application : new Icon(stream, SystemInformation.SmallIconSize);
     }
 
     private static bool IsStartupEnabled()

@@ -10,11 +10,16 @@ the shortcut you already use.
 Hold **Ctrl**, tap **C**, tap **3**, let go — that copy went to board 3.
 Hold **Ctrl**, tap **V**, tap **3**, let go — board 3 comes back.
 
+`Ctrl+X` takes the chord too, so you can cut straight into a board.
+
 Any digit works, top row or numpad, so there are ten boards plus the untouched system clipboard.
 Eleven places to put things.
 
 **The boards are rich, not just text.** Each one carries Unicode text, HTML, RTF, CSV, copied files
 and bitmaps, so formatted Word and Excel content, images and file selections all round-trip intact.
+Cut file selections keep their move flag, so cutting files into a board and pasting from it later
+really moves them rather than quietly copying.
+
 The captured format list is a deliberate whitelist — asking for every format present makes
 delayed-rendering sources like Excel materialise each one on demand, which is slow and sometimes
 hangs — so app-private exotic formats will not survive.
@@ -76,7 +81,7 @@ Nothing survives a restart, and nothing is written to disk at any point.
 
 ## Install
 
-Download `frothedboard-0.1.0-win-x64-portable.zip` from [Releases][releases], unpack the folder
+Download `frothedboard-0.2.0-win-x64-portable.zip` from [Releases][releases], unpack the folder
 anywhere — a USB stick is fine — and run `frothedboard.exe`. There is no installer and no runtime
 to install. It lives in the tray; right-click for the boards, to pause it, or to start it with
 Windows.
@@ -115,6 +120,14 @@ packs from NuGet.
 Defaults live in `FrothedConfig` — board count, the chord timeouts, how long to wait for a lazy app
 to read the clipboard before taking it back, and whether `Ctrl+X` takes the chord too. There is no
 config file, because there is no file: nothing is written anywhere.
+
+## Artwork
+
+`docs/make-banner.py` builds the banner and `docs/make-icon.py` draws the icon. The banner is a
+hybrid: OpenAI's `gpt-image-1` paints the backdrop, and everything whose correctness matters — the
+board count, the ordering, board 3 lining up with the third card, the key legends, the wordmark —
+is drawn locally, because across roughly twenty attempts the model never once got those right. The
+icon is drawn outright; image models turn to mush at the 16x16 the tray asks for.
 
 ## Licence
 
