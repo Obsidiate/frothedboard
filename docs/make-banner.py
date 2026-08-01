@@ -1,13 +1,23 @@
 """Build the frothedboard banner.
 
-gpt-image-1 renders the flat house style and the keyboard beautifully, and gets essentially every
-countable or lettered detail wrong: across roughly twenty attempts it never once produced ten
-cards, never put the highlight where it was told, spelled the wordmark "froteccboard", and
-repeatedly drew two C keys and no 3.
+    WIM_OPENAI_KEY=... python3 docs/make-banner.py docs/frothedboard.png
 
-So the division of labour is: the model paints the backdrop — background and an unlit keyboard —
-and this script draws everything whose correctness matters. The board count, the ordering, the
-alignment of board 3 with the third card, the key legends and the wordmark are all local.
+History explains the shape of this script. On gpt-image-1 essentially every countable or lettered
+detail came out wrong: across roughly twenty attempts it never once produced ten cards, never put
+the highlight on the card it was told to, spelled the wordmark "froteccboard", and repeatedly drew
+two C keys and no 3. That forced a hybrid where the model painted only a backdrop and the whole
+board row was composed locally.
+
+gpt-image-2 draws the entire picture correctly, and passed the layout check below on its first
+attempt. So this is back to a single generation, with two things still done here:
+
+  * the geometry is measured, and the image rejected unless it really is ten cards plus a separate
+    system clipboard card with the highlight on the third — trust, but verify
+  * the board numbers and captions are drawn locally, because digit sequences are the one thing
+    still not worth gambling on, and because they have to agree with the docs exactly
+
+Board numbers run 1-9 then 0, matching the number row on a keyboard, so the third card along
+genuinely is board 3 — which is what the amber connector points at.
 """
 
 import base64
@@ -19,46 +29,48 @@ import urllib.request
 
 from PIL import Image, ImageDraw, ImageFont
 
-PROMPT = """A clean modern technical illustration on a plain flat dark charcoal background, wide
-horizontal composition, flat vector style, crisp geometric shapes, no gradients.
+MODEL = os.environ.get("IMAGE_MODEL", "gpt-image-2")
 
-The picture contains exactly one object: a stylised mechanical keyboard seen at a slight
-three-quarter angle, sitting in the BOTTOM LEFT of the frame. It is complete and uncropped with
-clear empty margin around it, and takes up no more than a third of the picture width and a bit
-under half its height. It sits entirely below the midline.
+PROMPT = """A clean modern technical infographic banner for a developer tool called
+"frothedboard", with the word frothedboard in lowercase teal at the top right. Wide horizontal
+composition, dark charcoal background, soft teal and warm amber accents, flat vector illustration
+style with crisp geometric shapes and generous negative space.
 
-The keyboard is entirely dark charcoal, only slightly lighter than the background, with soft
-rounded keycaps. Every key is blank and unlit. There is no colour on it anywhere — no amber, no
-teal, no white, no highlighted keys.
+LOWER LEFT: a stylised mechanical keyboard seen at a slight three-quarter angle, fully inside the
+frame with clear margin around it, occupying about a third of the width. Exactly three of its keys
+are lit: a wide key clearly lettered CTRL glowing amber and shown pressed down, a key lettered C
+glowing teal, and a key showing the digit 3 glowing amber. Two slim curved arrows connect them in
+order, CTRL to C and C to 3.
 
-Absolutely nothing else appears in the picture. No text, letters, digits, words or watermark. No
-arrows, lines, cards, boxes, icons or symbols. The entire top half and the whole right-hand side
-are completely empty plain dark charcoal.
+UPPER RIGHT: exactly one single horizontal row of ten rounded cards, side by side in a straight
+line, evenly spaced, all exactly the same size, with a clear even gap between neighbours. The cards
+carry no numerals, letters or words of any kind. Each card instead shows a different kind of
+content as a simple flat glyph, to say that these hold anything you can copy: a few short lines of
+text, a small mountain-and-sun picture glyph, a document page with a folded corner, a small
+spreadsheet grid, a bulleted list, a photograph frame, a folder, a code bracket, a chart, a link.
+
+Counting from the left end of the row, the FIRST card is dark slate, the SECOND card is dark slate,
+and the THIRD card is the highlighted one: it alone is filled solid amber. All seven cards after it
+are dark slate too. Exactly one card in the whole row is amber, and it is the third from the left.
+One thin amber line arcs from the keyboard's 3 key up to that third card.
+
+Set apart at the far right end of the row, separated from the ten by a clear wide gap, sits one
+final card in pale grey bearing a simple clipboard glyph.
 
 Documentation artwork, minimal and precise. No photorealism, no glow, no drop shadows, no clutter."""
 
-TEAL = (122, 178, 178)
-TEAL_DEEP = (58, 138, 140)
-AMBER = (237, 155, 64)
-CARD = (52, 58, 62)
-GLYPH = (128, 138, 143)
-ON_AMBER = (120, 70, 12)
-PALE = (214, 214, 208)
-MUTED = (120, 128, 133)
-INK = (26, 29, 31)
-
-SS = 3  # supersample factor, for antialiased edges
-
 LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
 HIGHLIGHT = 2  # zero-based: the third card, which is board 3
-KINDS = ["text", "image", "doc", "table", "list", "code", "chart", "folder", "photo", "link"]
+
+TEAL = (122, 178, 178)
+AMBER = (237, 155, 64)
+MUTED = (126, 134, 140)
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 
 def generate(path):
     body = json.dumps({
-        "model": "gpt-image-1", "prompt": PROMPT,
-        "size": "1536x1024", "quality": "high", "n": 1,
+        "model": MODEL, "prompt": PROMPT, "size": "1536x1024", "quality": "high", "n": 1,
     }).encode()
     req = urllib.request.Request(
         "https://api.openai.com/v1/images/generations", data=body,
@@ -70,6 +82,7 @@ def generate(path):
     except urllib.error.HTTPError as e:
         print(f"  HTTP {e.code}: {e.read().decode()[:300]}")
         return False
+
     item = payload["data"][0]
     raw = base64.b64decode(item["b64_json"]) if "b64_json" in item else None
     if raw is None:
@@ -79,271 +92,130 @@ def generate(path):
     return True
 
 
-def occupancy(im, bg, box, step=4, tol=18):
-    px = im.load()
-    x0, y0, x1, y1 = box
-    busy = total = 0
-    for y in range(y0, y1, step):
-        for x in range(x0, x1, step):
-            total += 1
-            if max(abs(px[x, y][i] - bg[i]) for i in range(3)) > tol:
-                busy += 1
-    return busy / max(total, 1)
-
-
-def keyboard_bbox(im, bg):
-    """Bounding box of the one object in the lower half."""
-    px = im.load()
+def measure(path):
+    """Ten uniform cards plus one pale clipboard card. Returns (row, runs, amber, pale) or None."""
+    im = Image.open(path).convert("RGB")
     w, h = im.size
-    xs, ys = [], []
-    for y in range(h // 2, h, 3):
-        for x in range(0, w, 3):
-            if max(abs(px[x, y][i] - bg[i]) for i in range(3)) > 14:
-                xs.append(x)
-                ys.append(y)
-    if len(xs) < 400:
-        return None
-    return min(xs), min(ys), max(xs), max(ys)
-
-
-def has_colour(im, bg):
-    """The keyboard is meant to be monochrome; reject stray amber or teal keys."""
     px = im.load()
-    w, h = im.size
-    hits = 0
-    for y in range(h // 2, h, 3):
-        for x in range(0, w, 3):
-            r, g, b = px[x, y]
-            if max(r, g, b) - min(r, g, b) > 42:
-                hits += 1
-    return hits > 260
+    bg = px[20, h // 2]
+
+    for row in range(150, 620, 3):
+        runs, cur = [], None
+        for x in range(w):
+            on = max(abs(px[x, row][i] - bg[i]) for i in range(3)) > 10
+            if on and cur is None:
+                cur = x
+            if not on and cur is not None:
+                if x - cur > 40:
+                    runs.append((cur, x))
+                cur = None
+        if cur is not None and w - cur > 40:
+            runs.append((cur, w))
+
+        if len(runs) != 11:
+            continue
+        widths = [b - a for a, b in runs]
+        if max(widths) - min(widths) > 22:  # a scanline through the keyboard is never this uniform
+            continue
+
+        cols = [px[(a + b) // 2, row] for a, b in runs]
+        amber = [i for i, c in enumerate(cols) if c[0] > 180 and 100 < c[1] < 200 and c[2] < 110]
+        pale = [i for i, c in enumerate(cols) if min(c) > 150]
+        if len(amber) == 1 and len(pale) == 1:
+            return row, runs, amber[0], pale[0]
+
+    return None
 
 
-def rounded(d, box, radius, fill):
-    d.rounded_rectangle(box, radius=radius, fill=fill)
+def card_extent(im, bg, runs, row):
+    """
+    Top and bottom of the card row. Grown contiguously outward from the row we already measured —
+    taking the min and max over the whole column instead picks up the keyboard further down and
+    drops the captions at the foot of the image.
+    """
+    px = im.load()
+    mid = (runs[0][0] + runs[0][1]) // 2
+
+    def solid(y):
+        return max(abs(px[mid, y][i] - bg[i]) for i in range(3)) > 10
+
+    top = bottom = row
+    while top > 1 and solid(top - 1):
+        top -= 1
+    while bottom < im.size[1] - 2 and solid(bottom + 1):
+        bottom += 1
+    return top, bottom
 
 
-def glyph(d, kind, x, y, w, h, colour):
-    """Simple flat marks saying 'a board holds that kind of thing too'."""
-    cx, cy = x + w // 2, y + h // 2
-    r = max(2, w // 22)
+def annotate(src, out):
+    found = measure(src)
+    if found is None:
+        return False
+    row, runs, amber, pale = found
+    if amber != HIGHLIGHT or pale != 10:
+        return False
 
-    if kind == "text":
-        for i, frac in enumerate((1.0, 0.78, 0.9)):
-            rounded(d, (x, y + i * (h // 3), x + int(w * frac), y + i * (h // 3) + h // 6), r, colour)
-    elif kind == "image":
-        d.rounded_rectangle((x, y, x + w, y + h), radius=r * 2, outline=colour, width=r)
-        d.ellipse((x + w // 6, y + h // 6, x + w // 6 + w // 6, y + h // 6 + w // 6), fill=colour)
-        d.polygon([(x + r, y + h - r), (cx, y + h // 2), (x + w - r, y + h - r)], fill=colour)
-    elif kind == "doc":
-        fold = w // 3
-        d.polygon([(x, y), (x + w - fold, y), (x + w, y + fold), (x + w, y + h), (x, y + h)],
-                  fill=colour)
-    elif kind == "table":
-        for i in range(4):
-            d.line((x, y + i * h // 3, x + w, y + i * h // 3), fill=colour, width=r)
-            d.line((x + i * w // 3, y, x + i * w // 3, y + h), fill=colour, width=r)
-    elif kind == "list":
-        for i in range(3):
-            yy = y + i * (h // 2 - 2)
-            d.ellipse((x, yy, x + r * 3, yy + r * 3), fill=colour)
-            rounded(d, (x + r * 5, yy + r // 2, x + w, yy + r * 2 + r // 2), r, colour)
-    elif kind == "code":
-        d.line([(cx - w // 8, y), (x, cy), (cx - w // 8, y + h)], fill=colour, width=r * 2,
-               joint="curve")
-        d.line([(cx + w // 8, y), (x + w, cy), (cx + w // 8, y + h)], fill=colour, width=r * 2,
-               joint="curve")
-    elif kind == "chart":
-        for i, frac in enumerate((0.45, 0.75, 1.0)):
-            bw = w // 4
-            bx = x + i * (w - bw) // 2
-            rounded(d, (bx, y + int(h * (1 - frac)), bx + bw, y + h), r, colour)
-    elif kind == "folder":
-        tab = w // 2
-        d.polygon([(x, y + h // 5), (x + tab, y + h // 5), (x + tab + w // 10, y), (x, y)],
-                  fill=colour)
-        rounded(d, (x, y + h // 6, x + w, y + h), r * 2, colour)
-    elif kind == "photo":
-        d.rounded_rectangle((x, y + h // 8, x + w, y + h), radius=r * 2, fill=colour)
-        d.rounded_rectangle((x + w // 4, y, x + w - w // 4, y + h // 4), radius=r, fill=colour)
-    elif kind == "link":
-        d.rounded_rectangle((x, cy - h // 5, x + int(w * 0.62), cy + h // 5), radius=h // 5,
-                            outline=colour, width=r * 2)
-        d.rounded_rectangle((x + w - int(w * 0.62), cy - h // 5, x + w, cy + h // 5),
-                            radius=h // 5, outline=colour, width=r * 2)
-    elif kind == "clipboard":
-        d.rounded_rectangle((x, y + h // 10, x + w, y + h), radius=r * 3, outline=colour, width=r * 2)
-        d.rounded_rectangle((x + w // 4, y, x + w - w // 4, y + h // 6), radius=r, fill=colour)
-        for i in range(3):
-            yy = y + h // 3 + i * (h // 6)
-            d.line((x + w // 5, yy, x + w - w // 5, yy), fill=colour, width=r)
-
-
-def bezier(p0, p1, p2, steps=200):
-    out = []
-    for i in range(steps + 1):
-        t = i / steps
-        u = 1 - t
-        out.append((u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0],
-                    u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]))
-    return out
-
-
-def arrow(d, p0, p1, p2, colour, width, head=18):
-    pts = bezier(p0, p1, p2)
-    d.line([(x * SS, y * SS) for x, y in pts], fill=colour + (255,), width=width * SS,
-           joint="curve")
-    ax, ay = pts[-1]
-    bx, by = pts[-16]
-    dx, dy = ax - bx, ay - by
-    n = max((dx * dx + dy * dy) ** 0.5, 1e-6)
-    dx, dy = dx / n, dy / n
-    nx, ny = -dy, dx
-    d.polygon([((ax + dx * head * 0.7) * SS, (ay + dy * head * 0.7) * SS),
-               ((ax - dx * head + nx * head * 0.7) * SS, (ay - dy * head + ny * head * 0.7) * SS),
-               ((ax - dx * head - nx * head * 0.7) * SS, (ay - dy * head - ny * head * 0.7) * SS)],
-              fill=colour + (255,))
-
-
-def compose(base_path, out_path):
-    im = Image.open(base_path).convert("RGB")
+    im = Image.open(src).convert("RGB")
     W, H = im.size
     bg = im.load()[20, H // 2]
+    top, bottom = card_extent(im, bg, runs, row)
 
-    kb = keyboard_bbox(im, bg)
-    print(f"  keyboard bbox {kb}")
-
-    layer = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-
-    cw, ch, gap = 108, 132, 20
-    pitch = cw + gap
-    n = 10
-    sep = 46
-    total = n * pitch - gap + sep + cw
-    x0 = (W - total) // 2
-    top = 236
-
-    # Keycaps sit clear of the keyboard, to its right, stepping up towards the boards.
-    cap_left = max((kb[2] if kb else int(W * 0.36)) + 56, int(W * 0.40))
-    cap_left = min(cap_left, W - 580)
-    base_y = int(H * 0.77)
-
-    caps = [
-        ("CTRL", cap_left, base_y, 156, 92, AMBER),
-        ("C", cap_left + 218, base_y - 88, 96, 92, TEAL_DEEP),
-        ("3", cap_left + 218 + 182, base_y - 176, 96, 92, AMBER),
-    ]
-
-    # Connector first, so the amber card sits over the end of it.
-    three = caps[2]
-    start = (x0 + HIGHLIGHT * pitch + cw / 2, top + ch)
-    end = (three[1] + three[3] / 2, three[2] - 12)
-    ctrl_pt = (start[0] + (end[0] - start[0]) * 0.10, start[1] + (end[1] - start[1]) * 0.74)
-    d.line([(x * SS, y * SS) for x, y in bezier(start, ctrl_pt, end)],
-           fill=AMBER + (255,), width=5 * SS, joint="curve")
-
-    # Chord arrows: CTRL to C, then C to 3.
-    for a, b in ((caps[0], caps[1]), (caps[1], caps[2])):
-        p0 = (a[1] + a[3] + 8, a[2] + a[4] * 0.4)
-        p2 = (b[1] - 20, b[2] + b[4] * 0.66)
-        p1 = (p0[0] + (p2[0] - p0[0]) * 0.6, p0[1] - 40)
-        arrow(d, p0, p1, p2, TEAL, 7)
-
-    for _, x, y, w, h, colour in caps:
-        rounded(d, (x * SS, y * SS, (x + w) * SS, (y + h) * SS), 16 * SS, colour + (255,))
-
-    for i in range(n):
-        x = x0 + i * pitch
-        chosen = i == HIGHLIGHT
-        rounded(d, (x * SS, top * SS, (x + cw) * SS, (top + ch) * SS), 18 * SS,
-                (AMBER if chosen else CARD) + (255,))
-        gw, gh = int(cw * 0.46), int(ch * 0.36)
-        glyph(d, KINDS[i], (x + (cw - gw) // 2) * SS, (top + (ch - gh) // 2) * SS,
-              gw * SS, gh * SS, (ON_AMBER if chosen else GLYPH) + (255,))
-
-    cx = x0 + n * pitch - gap + sep
-    rounded(d, (cx * SS, top * SS, (cx + cw) * SS, (top + ch) * SS), 18 * SS, PALE + (255,))
-    gw, gh = int(cw * 0.44), int(ch * 0.42)
-    glyph(d, "clipboard", (cx + (cw - gw) // 2) * SS, (top + (ch - gh) // 2) * SS,
-          gw * SS, gh * SS, (90, 96, 100, 255))
-
-    layer = layer.resize((W, H), Image.LANCZOS)
-    im = Image.alpha_composite(im.convert("RGBA"), layer).convert("RGB")
-
-    # Text last, at full resolution, so it stays crisp.
-    d2 = ImageDraw.Draw(im)
-    num = ImageFont.truetype(FONT, 32)
+    d = ImageDraw.Draw(im)
+    num = ImageFont.truetype(FONT, 34)
     small = ImageFont.truetype(FONT, 21)
 
-    for i in range(n):
-        x = x0 + i * pitch
-        bb = d2.textbbox((0, 0), LABELS[i], font=num)
-        d2.text((x + (cw - (bb[2] - bb[0])) // 2 - bb[0], top - 46), LABELS[i], font=num,
-                fill=AMBER if i == HIGHLIGHT else TEAL)
+    def centred(text, font, x0, x1, y, fill):
+        bb = d.textbbox((0, 0), text, font=font)
+        width = bb[2] - bb[0]
+        # The clipboard card sits hard against the right edge, so keep its caption in frame.
+        x = min(max((x0 + x1) // 2 - width // 2, 12), W - width - 12)
+        d.text((x - bb[0], y - bb[1]), text, font=font, fill=fill)
 
-    for text, x, y, w, h, _ in caps:
-        f = ImageFont.truetype(FONT, 30 if text == "CTRL" else 42)
-        bb = d2.textbbox((0, 0), text, font=f)
-        d2.text((x + (w - (bb[2] - bb[0])) // 2 - bb[0], y + (h - (bb[3] - bb[1])) // 2 - bb[1]),
-                text, font=f, fill=(240, 244, 244) if text == "C" else INK)
+    for i, (x0, x1) in enumerate(runs[:10]):
+        centred(LABELS[i], num, x0, x1, top - 52, AMBER if i == HIGHLIGHT else TEAL)
 
-    d2.text((x0, top - 104), "every board holds text  ·  images  ·  files  ·  formatted documents",
-            font=small, fill=MUTED)
-
-    caption = "system clipboard"
-    bb = d2.textbbox((0, 0), caption, font=small)
-    d2.text((cx + (cw - (bb[2] - bb[0])) // 2 - bb[0], top + ch + 16), caption, font=small,
-            fill=MUTED)
-
-    wordmark = ImageFont.truetype(FONT, 76)
-    bb = d2.textbbox((0, 0), "frothedboard", font=wordmark)
-    d2.text((W - (bb[2] - bb[0]) - 74 - bb[0], 38 - bb[1]), "frothedboard", font=wordmark,
-            fill=TEAL)
+    centred("system clipboard", small, runs[10][0], runs[10][1], bottom + 22, MUTED)
+    d.text((runs[0][0], bottom + 22), "every board holds text  ·  images  ·  files  ·  documents",
+           font=small, fill=MUTED)
 
     tag = "why one clipboard when many clipboard do better"
-    bb2 = d2.textbbox((0, 0), tag, font=small)
-    d2.text((W - (bb2[2] - bb2[0]) - 76 - bb2[0], 128 - bb2[1]), tag, font=small, fill=MUTED)
+    bb = d.textbbox((0, 0), tag, font=small)
+    d.text((W - (bb[2] - bb[0]) - 76 - bb[0], H - 68 - bb[1]), tag, font=small, fill=MUTED)
 
-    im.save(out_path)
-    print(f"  wrote {out_path}")
+    im.save(out)
+    return True
 
 
 def main():
     out = sys.argv[1]
-    base = os.path.join(os.path.dirname(out) or ".", "_base.png")
+    candidate = os.path.join(os.path.dirname(out) or ".", "_candidate.png")
 
     if not (len(sys.argv) > 2 and sys.argv[2] == "--reuse"):
         for attempt in range(1, 6):
-            print(f"attempt {attempt}: generating backdrop…")
-            if not generate(base):
+            print(f"attempt {attempt}: generating with {MODEL}…")
+            if not generate(candidate):
                 continue
-            im = Image.open(base).convert("RGB")
-            W, H = im.size
-            bg = im.load()[20, H // 2]
-
-            top_busy = occupancy(im, bg, (60, 120, W - 40, 460))
-            if top_busy > 0.03:
-                print(f"  rejected: top is {top_busy:.1%} occupied, needs to be empty")
+            found = measure(candidate)
+            if found is None:
+                print("  rejected: not a clean row of ten cards plus the clipboard")
                 continue
-            if has_colour(im, bg):
-                print("  rejected: keyboard has coloured keys, which would fight my own")
+            _, _, amber, pale = found
+            if amber != HIGHLIGHT:
+                print(f"  rejected: highlight is on card {amber + 1}, needs the 3rd")
                 continue
-            kb = keyboard_bbox(im, bg)
-            if kb is None or kb[2] > W * 0.58 or kb[1] < H * 0.40:
-                print(f"  rejected: keyboard bbox {kb} is not tucked into the lower left")
+            if pale != 10:
+                print(f"  rejected: clipboard card is at index {pale}, needs to be last")
                 continue
-            right_busy = occupancy(im, bg, (int(W * 0.62), int(H * 0.52), W - 40, H - 40))
-            if right_busy > 0.03:
-                print(f"  rejected: right side is {right_busy:.1%} occupied")
-                continue
-            print(f"  accepted backdrop (top {top_busy:.1%}, right {right_busy:.1%}, kb {kb})")
+            print(f"  accepted: ten cards plus clipboard, highlight on card {amber + 1}")
             break
         else:
-            print("gave up on the backdrop")
+            print("gave up: no generation satisfied the layout check")
             return 1
 
-    compose(base, out)
+    if not annotate(candidate, out):
+        print("annotate failed: geometry no longer measurable")
+        return 1
+    print(f"  wrote {out}")
     return 0
 
 

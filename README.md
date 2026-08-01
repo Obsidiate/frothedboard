@@ -123,11 +123,22 @@ config file, because there is no file: nothing is written anywhere.
 
 ## Artwork
 
-`docs/make-banner.py` builds the banner and `docs/make-icon.py` draws the icon. The banner is a
-hybrid: OpenAI's `gpt-image-1` paints the backdrop, and everything whose correctness matters — the
-board count, the ordering, board 3 lining up with the third card, the key legends, the wordmark —
-is drawn locally, because across roughly twenty attempts the model never once got those right. The
-icon is drawn outright; image models turn to mush at the 16x16 the tray asks for.
+`docs/make-banner.py` builds the banner and `docs/make-icon.py` draws the icon.
+
+The banner comes from OpenAI's `gpt-image-2` in a single generation. That is worth recording,
+because `gpt-image-1` could not do it: across roughly twenty attempts it never once produced ten
+cards, never put the highlight on the card it was told to, spelled the wordmark "froteccboard",
+and repeatedly drew two C keys and no 3 — which forced a hybrid where the model painted only a
+backdrop and the whole board row was composed locally. `gpt-image-2` passed the layout check first
+try.
+
+Two things are still done locally. The geometry is measured and the image rejected unless it
+really is ten cards plus a separate system clipboard with the highlight on the third; and the
+board numbers and captions are drawn here, because digit sequences remain the one thing not worth
+gambling on and they have to agree with these docs exactly.
+
+The icon is drawn outright rather than generated — image models turn to mush at the 16x16 a tray
+icon has to survive.
 
 ## Licence
 
