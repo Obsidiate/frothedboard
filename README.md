@@ -22,10 +22,13 @@ installer, no runtime. It sits in the tray. A folder rather than a lone exe so n
 Portable: nothing is written to disk, ever. Boards are wiped when you quit and don't survive a
 restart, on purpose.
 
-## Not tested yet
+## Tested so far
 
-Text works. Nobody has run the rest. **Cutting files** especially — check the originals really
-disappear. Also untried: images, formatted content, elevated windows.
+Text copies and pastes through the boards. Cutting files works too, and boards hold their own
+payloads independently — 1 and 2 each moved a different set.
+
+Still untried: images, formatted content, and elevated windows (an unelevated hook cannot see
+them; run as admin if you need them).
 
 ## Build
 
