@@ -69,13 +69,19 @@ tests — every transition, both Ctrl keys, both digit rows, held-Ctrl paste bur
 working.
 
 `Frothedboard.App` is the Win32 shim around it: the keyboard hook, `SendInput`, the clipboard
-mirror and the tray icon. **It compiles but has not yet been run on Windows** — it was
-cross-compiled from Linux. Things worth checking first on real hardware:
+mirror and the tray icon. It is cross-compiled from Linux, so its exposure to a real Windows
+machine is exactly as much as someone has given it.
 
-- ordinary Ctrl+C / Ctrl+V feel unchanged in a browser, an editor, Office, Explorer and a terminal
-- Ctrl never sticks down after a flush — hammer Ctrl+V without releasing, then mash C, V and digits
-- rich content survives a round trip: formatted text, an image, copied files
-- elevated windows (an unelevated hook cannot see them; run as admin if you need them)
+**Confirmed working on Windows:** the chord itself, and copying and pasting text through the
+boards.
+
+**Not yet exercised by anyone**, in rough order of how likely they are to bite:
+
+- **cutting files.** `Ctrl+X` into a board carries the move flag as of 0.2.0, but that path has
+  never run. Check that pasting from the board really moves the files and the originals disappear.
+- rich content round-tripping: formatted text, an image, a file selection
+- Ctrl not sticking down after a flush — hammer `Ctrl+V` without releasing, then mash C, V and digits
+- elevated windows, which an unelevated hook cannot see at all; run as admin if you need them
 
 Nothing survives a restart, and nothing is written to disk at any point.
 
