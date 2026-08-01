@@ -35,9 +35,6 @@ histories: Ditto, CopyQ, ArsClip, Win+V. Every one of them binds a *separate* sh
 `Ctrl+Alt+Numpad5`, `Ctrl+Shift+C` then a digit. The one script that hooks `Ctrl+C` itself breaks
 plain `Ctrl+C` — you have to tap space afterwards to get an ordinary copy.
 
-PowerToys has carried a request for exactly this since 2020 ([#3768][pt1], [#18430][pt2]). It is
-still open.
-
 The idea here isn't eleven clipboards. It's that the chord is a *suffix on the real shortcut*, so
 the feature costs nothing when you aren't using it.
 
@@ -126,28 +123,6 @@ packs from NuGet.
 Defaults live in `FrothedConfig` — board count, the chord timeouts, how long to wait for a lazy app
 to read the clipboard before taking it back, and whether `Ctrl+X` takes the chord too. There is no
 config file, because there is no file: nothing is written anywhere.
-
-## Artwork
-
-`docs/make-banner.py` builds the banner and `docs/make-icon.py` draws the icon.
-
-The banner comes from OpenAI's `gpt-image-2` in a single generation. That is worth recording,
-because `gpt-image-1` could not do it: across roughly twenty attempts it never once produced ten
-cards, never put the highlight on the card it was told to, spelled the wordmark "froteccboard",
-and repeatedly drew two C keys and no 3 — which forced a hybrid where the model painted only a
-backdrop and the whole board row was composed locally. `gpt-image-2` passed the layout check first
-try.
-
-Two things are still done locally. The geometry is measured and the image rejected unless it
-really is ten cards plus a separate system clipboard with the highlight on the third; and the
-board numbers and captions are drawn here, because digit sequences remain the one thing not worth
-gambling on and they have to agree with these docs exactly.
-
-The icon is generated too, by the same model. Two things make it work at tray sizes. The API
-rejects a `background: transparent` parameter and the model answers the *word* "transparent" by
-painting a checkerboard, so the art is generated on flat magenta and chroma-keyed out. And a plain
-resize to 16x16 turns to soup, so the small entries are sharpened after downscaling and their alpha
-re-hardened to keep a crisp silhouette.
 
 ## Licence
 
