@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Lets this Windows-only project restore its ref packs and build on Linux. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>frothedboard</AssemblyName>
+    <RootNamespace>Frothedboard.App</RootNamespace>
+    <ApplicationIcon></ApplicationIcon>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Frothedboard.Core\Frothedboard.Core.csproj" />
+  </ItemGroup>
+
+</Project>
