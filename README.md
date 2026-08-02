@@ -1,6 +1,6 @@
 # frothedboard
 
-Why one clipboard when many clipboard do better
+Why one clipboard when eleven better
 
 ![frothedboard — ten extra clipboards on Windows, reached by holding Ctrl, tapping C, then a number](docs/frothedboard-poster.png)
 
